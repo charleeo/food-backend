@@ -53,13 +53,13 @@ const path = require('path');
                })
             }
         },
-        logErrors(error){
+        logErrors(err){
             let emptyCheck = true
             let  logPath = 'logs'
             let  extension = '.txt'
             let file =  "log-"+ getDate()
             const fullPath = `${logPath}/${file}${extension}`
-            
+            let error = err.stack
 
             if(!fs.existsSync(path.join(__dirname, 'logs'))){
                 fs.mkdir(path.join(__dirname, 'logs'), (err) => {

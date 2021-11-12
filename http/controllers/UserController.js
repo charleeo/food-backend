@@ -115,46 +115,87 @@ const UserController ={
     let result =null
     error = null
     
-    const {username,email,password,role_id} = req.body
+    const {
+        user_name,
+        email,
+        password,
+        user_type_id,
+        lga_id,
+        address,
+        phone,
+        surname,
+        first_name
+    } = req.body
      const schema = Joi.object({
-      name: Joi.string()
+      user_name: Joi.string()
           .min(3)
           .max(30)
           .alphanum()
+          .required(),
+      surname: Joi.string()
+          .min(3)
+          .max(30)
+          .alphanum()
+          .required(),
+      first_name: Joi.string()
+          .min(3)
+          .max(30)
+          .alphanum()
+          .required(),
+      address: Joi.string()
+          .min(3)
+          .max(30)
+          .required(),
+      phone: Joi.string()
+          .min(9)
+          .max(12)
           .required(),
       password: Joi.string().required()
           .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).min(6),
       email: Joi.string() .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net','info','ng'] } }).required()
   })
   try {
-    const {error,value}= schema.validate({ name,email,password});
+    const {error,value}= schema.validate({surname,first_name,phone,address, user_name,email,password});
       
     
     if(error){
         message = error.details[0].message
         statusCode  = 400
-    } 
-    const checkUser = await models.User.findOne({where:{email}});
-    
-    if(checkUser.length >0){
-            statusCode = 409
-            message = `User with this ${email} already exists`
-    }else{
-        const salt = await bcryptjs.genSalt(10);
-        const hash= await bcryptjs.hash(password, salt);
-        const user = { name, email, password: hash, role_id}
-        result =  await TestObject.create(user)
-        if(result){
-            responseData = result
-            message = "Account created successfully"
-            status = true
-        }else message="Could not create a user"
+    } else{
+
+        const checkUser = await models.User.findOne({where:{email}});
+        
+        if(checkUser){
+                statusCode = 409
+                message = `User with this ${email} already exists`
+        }else{
+            const salt = await bcryptjs.genSalt(10);
+            const hash= await bcryptjs.hash(password, salt);
+            const user = { 
+                lga_id,
+                address,
+                phone,
+                surname,
+                first_name,
+                email,
+                password: hash, 
+                user_type_id,
+                user_name
+                }
+            result =  await models.User.create(user)
+            if(result){
+                responseData = result
+                message = "Account created successfully"
+                status = true
+            }else message="Could not create a user"
+        }
     }
     
     } catch (err) {
         message = "There  is a server error"
         statusCode = 500
         error = err.message 
+        logUtils.logErrors(err)
     }
     logUtils.logData(error? error:responseData,req,res,message,statusCode,status)
     const token = jwt.sign({email}, secrete,{expiresIn:"2days"})
