@@ -11,4 +11,4 @@ router.post('/update/:id', UserController.updateUsers)
 
 router.post('/login', UserController.login)
 
-module.exports = router;
+module.exports = router
