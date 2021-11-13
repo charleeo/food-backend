@@ -6,12 +6,9 @@ const port = require('../../config/config').PORT
 const mailObject = require('../../helpers/helpers')
 const logUtils = require('../../logutils')
 const models = require('../../models')
-
+const {validateUser} = require("./request_validation/createUserRequest")
                             
-
-// const {valid} = require('')
 const {emailVerificationObject,forgotPasswordObjects }  = require( '../../helpers/mailObjects');
-
 
 const {text,html,subject} = emailVerificationObject
 const {textF,htmlF,subjectF} = forgotPasswordObjects
@@ -86,7 +83,7 @@ const UserController ={
                 password:password?password:userInfo.password,
                 role_id:role_id?role_id:userInfo.role_id
             }
-            // const user = await TestObject.update(values,'id',id);
+            const user = await models.User.update(values,{where:{email}});
             if(user){
                 message="User updated successfully"
                 responseData = user
@@ -113,8 +110,8 @@ const UserController ={
     let responseData = null;
     let message = ""
     let result =null
-    error = null
-    
+    let error = null
+    console.log("This should come first")
     const {
         user_name,
         email,
@@ -126,42 +123,13 @@ const UserController ={
         surname,
         first_name
     } = req.body
-     const schema = Joi.object({
-      user_name: Joi.string()
-          .min(3)
-          .max(30)
-          .alphanum()
-          .required(),
-      surname: Joi.string()
-          .min(3)
-          .max(30)
-          .alphanum()
-          .required(),
-      first_name: Joi.string()
-          .min(3)
-          .max(30)
-          .alphanum()
-          .required(),
-      address: Joi.string()
-          .min(3)
-          .max(30)
-          .required(),
-      phone: Joi.string()
-          .min(9)
-          .max(12)
-          .required(),
-      password: Joi.string().required()
-          .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).min(6),
-      email: Joi.string() .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net','info','ng'] } }).required()
-  })
+     
   try {
-    const {error,value}= schema.validate({surname,first_name,phone,address, user_name,email,password});
-      
-    
-    if(error){
-        message = error.details[0].message
-        statusCode  = 400
-    } else{
+       error = validateUser(req)
+        if(error){
+            message = error.details[0].message
+            statusCode  = 400
+        } else{
 
         const checkUser = await models.User.findOne({where:{email}});
         
@@ -219,10 +187,8 @@ const UserController ={
            stat=400
            message= "Please ensure that all fields are filled"
       }
-    
-    
 
-      const [user] = await models.User.findOne({where:{email}});
+      const user = await models.User.findOne({where:{email}});
      
       if(!user){
           statusCode =400
@@ -235,7 +201,15 @@ const UserController ={
               message="Invalid credentials provided"
          }
          if(!message){
-             const token =  jwt.sign({userId: user.id, email,name:user.name},secrete,{expiresIn:'2days'});
+            const credentials = {
+                id: user.id, 
+                email,
+                username:user.user_name,
+                surname:user.surname,
+                firstname:user.first_name,
+                user_type_id:user.user_type_id,
+            }
+             const token =  jwt.sign(credentials,secrete,{expiresIn:'2days'});
              message="Login was successfull"
              status = true
              responseData = {token:token,user:{email:user.email,name:user.name,id:user.id}}
@@ -247,9 +221,10 @@ const UserController ={
       
       }catch(err){
           statusCode= 500
-          error=err.message
+          res.status(statusCode)
           message="There is a server error"
-          console.log(err)
+          logUtils.logErrors(err)
+          
       }
       logUtils.logData(error? error:responseData,req,res,message,statusCode,status)
       res.status(statusCode).json({ status, responseData, message })

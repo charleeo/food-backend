@@ -1,0 +1,14 @@
+[
+    {
+        "name":"Admin User"
+    },
+    {
+        "name":"Restaurant User"
+    },
+    {
+        "name":"Dispatchers"
+    },
+    {
+        "name":"General Users"
+    }
+]

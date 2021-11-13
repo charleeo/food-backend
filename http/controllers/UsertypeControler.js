@@ -1,58 +1,42 @@
-const Joi = require('joi')
-const logUtils = require('../../logutils')
 const models = require('../../models')
-const  UserTYpeController ={
-   createUserTYpe:async(req,res,next)=>{
-        let  status  = false;
-        let statusCode = 200
-        let responseData = null;
-        let message = ""
-        let error =null
-        let data =null;
-        let userType=null;
-        const {name} = req.body
-        const schema = Joi.object({
-            name: Joi.string()
-                .min(3)
-                .max(30)
-                // .alphanum()
-                .required()
-        })
-        try {
-            const {error,value}= schema.validate({ name});
-      
-            if(error){
-                message = error.details[0].message
-                statusCode  = 400
-            } 
-            else{
-                //check if name alreay created            
-                userType = await models.UserType.findOne({where:{name:name}})
-                if(userType){
-                    message = `This user type with name ${name} is already in the system`
-                }else{
-                    data = await models.UserType.create({name:name})
-                    if(data){
-                        message = "User type created succesfuly"
-                        statusCode = 201
-                        status = true
-                        responseData = data
-                    }else{
-                        message = "Could not create a user type"
-                    }
-                }
+const userTypes = require('../../custom-data/userTypes.json')
+const { user } = require('../../middleware/auth_middleware')
+const UsertypeDefinition = require('../../middleware/userTypeDefinition')
 
-            }
-        } catch (err) {
-            statusCode = 500
-            res.status(statusCode)
-            logUtils.logErrors(err)
-            message = "There was an error"
-        }
-
-        logUtils.logData(error? error:responseData,req,res,message,statusCode,status)
-        res.status(statusCode).json({ status, responseData, message })
-   }
+createType =   async()=>{
+  
+   userTypes.forEach( async(type)=>{
+       let existingRecords = await models.UserType.findOne({where:{name:type.name}})
+       if(existingRecords){
+          records = await models.UserType.update(
+               {name:existingRecords.name},
+               {where:{name:type.name}}
+               )
+       }else{
+           records= await models.UserType.create({name:type.name})
+       }
+   })
+   
+   return true
 }
+const UserTYpeController ={
+    createUserTYpe:async(req,res,next)=>{
+        let status =false
+        // if(UsertypeDefinition.userISAdmin(user(req).id)){
+        //     console.log("User is acting for Admin")
+        // }
+        if(await createType()){
+            status=  true
+        }
+        if(status==true){
 
+            res.status(201).json({message:"User type created successully"})
+        }else{
+
+            res.status(201).json({message:"Could not create user type"})
+        }
+    }
+}
 module.exports = UserTYpeController
+ 
+

@@ -1,0 +1,14 @@
+[
+    {
+        "name":"Super Admin"
+    },
+    {
+        "name":"Manager"
+    },
+    {
+        "name":"Accountant"
+    },
+    {
+        "name":"Auditor"
+    }
+]

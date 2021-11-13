@@ -1,10 +1,14 @@
 const models = require('../../models')
 const states = require('../../custom-data/states.json')
 const LGAs = require('../../custom-data/local_governments.json')
+const admins = require('../../custom-data/adminRoles.json')
 
 const SetupController ={
     setupData:async(req,res,next)=>{
         let status =false
+        if(await createAdminRoles()){
+            status=  true
+        }
         if(await createStates()){
             status=  true
         }
@@ -48,6 +52,22 @@ module.exports = SetupController
                 )
         }else{
             records= await models.LGA.create({name:lga.name,state_id:lga.state_id})
+        }
+    })
+    
+    return true
+}
+ createAdminRoles=   async()=>{
+   
+    admins.forEach( async(admin)=>{
+        let existingRecords = await models.AdminRole.findOne({where:{role_name:admin.name}})
+        if(existingRecords){
+           records = await models.AdminRole.update(
+                {role_name:existingRecords.role_name},
+                {where:{role_name:admin.name}}
+                )
+        }else{
+            records= await models.AdminRole.create({role_name:admin.name})
         }
     })
     
