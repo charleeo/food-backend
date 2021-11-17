@@ -2,10 +2,14 @@ const models = require('../../models')
 const states = require('../../custom-data/states.json')
 const LGAs = require('../../custom-data/local_governments.json')
 const admins = require('../../custom-data/adminRoles.json')
+const restaurantRoles = require('../../custom-data/restaurant_roles.json')
 
 const SetupController ={
     setupData:async(req,res,next)=>{
         let status =false
+        if(await createRestaurantRoles()){
+            status=  true
+        }
         if(await createAdminRoles()){
             status=  true
         }
@@ -70,6 +74,23 @@ module.exports = SetupController
             records= await models.AdminRole.create({role_name:admin.name})
         }
     })
+    
+    return true
+}
+ createRestaurantRoles=   async()=>{
+   
+    restaurantRoles.forEach( async(role)=>{
+        let existingRecords = await models.RestaurantRole.findOne({where:{role_name:role.role_name}})
+        if(existingRecords){
+           records = await models.RestaurantRole.update(
+                {role_name:existingRecords.role_name},
+                {where:{role_name:role.role_name}}
+                )
+        }else{
+            records= await models.RestaurantRole.create({role_name:role.role_name})
+        }
+    })
+//    await  models.RestaurantRole.bulkCreate(restaurantRoles)
     
     return true
 }

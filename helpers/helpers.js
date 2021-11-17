@@ -1,3 +1,4 @@
+const Crypto = require('crypto')
 const nodemailer = require('nodemailer');
 const config =        require('../config/config')
 const transporter  = nodemailer.createTransport({
@@ -85,5 +86,14 @@ const transporter  = nodemailer.createTransport({
    return range
  }
 
- module.exports= {sendMail, generateToken}
+function randomString(size = 15) {  
+  const str= Crypto
+    .randomBytes(size)
+    .toString('hex')
+    .slice(0, size)
+    return str.toUpperCase()
+}
+
+
+ module.exports= {sendMail, generateToken,randomString}
   // send mail with defined transport object

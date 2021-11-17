@@ -10,7 +10,13 @@ module.exports = {
     dialect: 'mysql',
     dialectOptions: {
       bigNumberStrings: true
-    }
+    },
+    pool: {
+      max: 5,
+      min: 1,
+      idle: 10000,
+      evict: 10000,
+  }
   },
   test: {
     username: process.env.CI_DB_USERNAME,

@@ -1,12 +1,14 @@
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Joi = require('joi')
 const secrete = require('../../config/config').jwt_secrete
 const port = require('../../config/config').PORT
 const mailObject = require('../../helpers/helpers')
 const logUtils = require('../../logutils')
 const models = require('../../models')
+const {sequelize} = require('../../models')
 const {validateUser} = require("./request_validation/createUserRequest")
+const {restaurantService} = require('../services/restaurantService')
+const {adminService} = require('../services/adminservices')
                             
 const {emailVerificationObject,forgotPasswordObjects }  = require( '../../helpers/mailObjects');
 
@@ -46,7 +48,7 @@ const UserController ={
         let error =null
         try{
             const user = await models.User.findOne({where:{id}})
-            if(user.length >0){
+            if(user){
                 message="User found"
                 responseData = user
                 status = true 
@@ -58,7 +60,8 @@ const UserController ={
         }catch (err) {
             message = "There  is a server error"
             statusCode = 500
-            error = err.message 
+            res.status(statusCode)
+            logUtils.logErrors(err)
         }
         
         logUtils.logData(error? error:responseData,req,res,message,statusCode,status)
@@ -73,6 +76,7 @@ const UserController ={
         let message = ""
         let error =null
         const id = req.params.id
+        const transaction = sequelize.transaction()
         try{
             const {name,email,role_id,password} = req.body
             let [userInfo] = await models.User.findOne({where:{email}})
@@ -111,7 +115,7 @@ const UserController ={
     let message = ""
     let result =null
     let error = null
-    console.log("This should come first")
+    const transaction = await sequelize.transaction()//declare the transaction object
     const {
         user_name,
         email,
@@ -123,7 +127,7 @@ const UserController ={
         surname,
         first_name
     } = req.body
-     
+
   try {
        error = validateUser(req)
         if(error){
@@ -134,12 +138,12 @@ const UserController ={
         const checkUser = await models.User.findOne({where:{email}});
         
         if(checkUser){
-                statusCode = 409
-                message = `User with this ${email} already exists`
+            statusCode = 409
+            message = `User with this ${email} already exists`
         }else{
             const salt = await bcryptjs.genSalt(10);
             const hash= await bcryptjs.hash(password, salt);
-            const user = { 
+            let user = { 
                 lga_id,
                 address,
                 phone,
@@ -148,18 +152,30 @@ const UserController ={
                 email,
                 password: hash, 
                 user_type_id,
-                user_name
-                }
-            result =  await models.User.create(user)
+                user_name,
+                // type_id:req.type_id
+            }
+
+            let restaurantUser = await restaurantService(user,transaction)
+            let adminUser    = await adminService(user,transaction)
+           
+            user.type_id = restaurantUser ? restaurantUser.id : adminUser.id
+            
+            result =  await models.User.create(user,{transaction})
             if(result){
+                await transaction.commit()
                 responseData = result
                 message = "Account created successfully"
                 status = true
-            }else message="Could not create a user"
+            }else {
+                transaction.rollback()
+                message="Could not create a user"
+            }
         }
     }
     
-    } catch (err) {
+    } catch (err) { 
+        transaction.rollback()
         message = "There  is a server error"
         statusCode = 500
         error = err.message 

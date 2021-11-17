@@ -3,25 +3,18 @@ const userRoutes = require('./routes/userRoutes')
 const usertypeRoute = require('./routes/usertypeRoute')
 const setupRoute = require('./routes/setupRoute')
 const UsertypeControler = require('../http/controllers/UsertypeControler');
-const { testEvents } = require('../events/adminListener');
+const { testEvents } = require('../http/services/adminListener');
+const restaurantRoutes = require('./routes/restaurantRoute')
 const app = express()
 app.use(express.json())
-
+app.use(express.static(__dirname + '/public'))
 
 app.use('/users/',userRoutes)
 app.use('/user-type',usertypeRoute)
 app.use('/setup',setupRoute)
+app.use('/restaurants',restaurantRoutes)
 // app.get('/test', testEvents, UsertypeControler.testEvent)
 // app.use('/school/',schoolRoutes)
-
-app.on('testEvent', function () {
-    return console.log('responded to testEvent');
-  });
-  
-  app.get('/test', function (req, res) {
-    app.emit('testEvent');
-    return res.status(200).end();
-  });
 
 
 module.exports = app
